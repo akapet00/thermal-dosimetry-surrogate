@@ -1,35 +1,20 @@
 import torch
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import TensorDataset
+from torch.utils.data import DataLoader
 from tqdm import trange
 
 from .module import Swish
 
 
 class AdaptiveLinear(torch.nn.Linear):
-    r"""Applies a linear transformation to the input data as follows
+    r"""Applies a linear transformation to the input data as
+    
     .. math::
         y = naxA^T + b
+        
     More details available in Jagtap, A. D. et al. Locally adaptive
     activation functions with slope recovery for deep and
     physics-informed neural networks, Proc. R. Soc. 2020.
-    
-    Constructor.
-    Parameters
-    ----------
-    in_features : int
-        Size of each input sample
-    out_features : int
-        Size of each output sample
-    bias : bool, optional
-        If set to `False`, the layer will not learn an additive bias
-    adaptive_rate : float, optional
-        Scalable adaptive rate parameter for activation function that
-        is added layer-wise for each neuron separately. It is treated
-        as learnable parameter and will be optimized using a optimizer
-        of choice
-    adaptive_rate_scaler : float, optional
-        Fixed, pre-defined, scaling factor for adaptive activation
-        functions
     """
     def __init__(self,
                  in_features,
@@ -37,6 +22,29 @@ class AdaptiveLinear(torch.nn.Linear):
                  bias=True,
                  adaptive_rate=None,
                  adaptive_rate_scaler=None):
+        """Constructor.
+        
+        Parameters
+        ----------
+        in_features : int
+            Size of each input sample.
+        out_features : int
+            Size of each output sample.
+        bias : bool, optional
+            If set to `False`, a layer will not learn an additive bias.
+        adaptive_rate : float, optional
+            Scalable adaptive rate parameter for activation function
+            that is added layer-wise for each neuron separately. It is
+            treated as learnable parameter and will be optimized using
+            an optimizer of choice.
+        adaptive_rate_scaler : float, optional
+            Fixed, pre-defined, scaling factor for adaptive activation
+            functions.
+            
+        Returns
+        -------
+        None
+        """
         super(AdaptiveLinear, self).__init__(in_features, out_features, bias)
         self.adaptive_rate = adaptive_rate
         self.adaptive_rate_scaler = adaptive_rate_scaler
@@ -65,50 +73,53 @@ class AdaptiveLinear(torch.nn.Linear):
             f'adaptive_rate_scaler={self.adaptive_rate_scaler is not None}'
         )
 
-class NN(torch.nn.Module):
-    r"""Neural network module.
-    Parameters
-    ----------
-    sizes : list
-        Number of hidden units per hidden layer
-    activation : str
-        Activation function of choice
-    dropout_rate : float, optional
-        If set to float between 0 and 1, the dropout regularization
-        will be applied
-    adaptive_rate : float, optional
-        Scalable adaptive rate parameter for activation function that
-        is added layer-wise for each neuron separately. It is treated
-        as learnable parameter and will be optimized using a optimizer
-        of choice
-    adaptive_rate_scaler : float, optional
-        Fixed, pre-defined, scaling factor for adaptive activation
-        functions
-    apply_slope_recovery : bool, optional
-        Apply slope recovery term to the loss function
-    """
+
+class MLP(torch.nn.Module):
+    r"""Multilayer perceptron module."""
     def __init__(self,
                  sizes,
                  activation,
-                 dropout_rate=0.0,
+                 dropout=0.0,
                  adaptive_rate=None,
-                 adaptive_rate_scaler=None,
-                 apply_slope_recovery=False):
-        super(NN, self).__init__()
-        self.apply_slope_recovery = apply_slope_recovery
-        self.regressor = torch.nn.Sequential(
-            *[NN.linear_block(inf_f,
-                              out_f,
-                              activation,
-                              dropout_rate,
-                              adaptive_rate,
-                              adaptive_rate_scaler)
+                 adaptive_rate_scaler=None):
+        """Constructor.
+        
+        Parameters
+        ----------
+        sizes : list
+            Number of hidden units per hidden layer.
+        activation : str
+            Activation function of choice
+        dropout : float, optional
+            If set to float between 0 and 1, the dropout regularization
+            will be applied.
+        adaptive_rate : float, optional
+            Scalable adaptive rate parameter for activation function
+            that is added layer-wise for each neuron separately. It is
+            treated as learnable parameter and will be optimized using
+            an optimizer of choice.
+        adaptive_rate_scaler : float, optional
+            Fixed, pre-defined, scaling factor for adaptive activation
+            functions.
+            
+        Returns
+        -------
+        None
+        """
+        super(MLP, self).__init__()
+        self.module = torch.nn.Sequential(
+            *[MLP.linear_block(inf_f,
+                               out_f,
+                               activation,
+                               dropout,
+                               adaptive_rate,
+                               adaptive_rate_scaler)
               for inf_f, out_f in zip(sizes[:-1], sizes[1:-1])],
             AdaptiveLinear(sizes[-2], sizes[-1])
         )
     
     @staticmethod
-    def linear_block(inf_f, out_f, activation, dropout_rate, adaptive_rate,
+    def linear_block(inf_f, out_f, activation, dropout, adaptive_rate,
                      adaptive_rate_scaler):
         activation_dispatcher = torch.nn.ModuleDict([
             ['lrelu', torch.nn.LeakyReLU()],
@@ -123,7 +134,7 @@ class NN(torch.nn.Module):
                            adaptive_rate=adaptive_rate,
                            adaptive_rate_scaler=adaptive_rate_scaler),
             activation_dispatcher[activation],
-            torch.nn.Dropout(dropout_rate)
+            torch.nn.Dropout(dropout)
         )
 
     def _get_data(self, train_ds, valid_ds, batch_size):
@@ -131,16 +142,46 @@ class NN(torch.nn.Module):
                 DataLoader(valid_ds, batch_size=batch_size*2))
 
     def fit(self,
-            x_train,
+            X_train,
             y_train,
-            x_valid,
+            X_valid,
             y_valid,
-            iterations,
-            batch_size,
             optimizer,
-            criterion):
-        train_ds = TensorDataset(x_train, y_train)
-        valid_ds = TensorDataset(x_valid, y_valid)
+            criterion,
+            iterations=100,
+            batch_size=32,
+            apply_slope_recovery=False):
+        """Constructor.
+        
+        Parameters
+        ----------
+        X_train : torch.Tensor
+            Training set features.
+        y_train : torch.Tensor
+            Training set targets.
+        X_valid : torch.Tensor
+            Validation set features.
+        y_valid : torch.Tensor
+            Validation set targets.
+        optimizer : torch.optim.Optimizer
+            Optimizer.
+        criterion : torch.nn.modules.loss.Module
+            Criterion for learning.
+        iterations : int, optional
+            Number of training epochs.
+        batch_size : int, optional
+            Batch size.
+        apply_slope_recovery : bool, optional
+            Apply slope recovery term to the loss function. `False` by
+            default.
+        
+        Returns
+        -------
+        tuple
+            Two lists containing train and validation loss values.
+        """
+        train_ds = TensorDataset(X_train, y_train)
+        valid_ds = TensorDataset(X_valid, y_valid)
         train_dl, valid_dl = self._get_data(train_ds, valid_ds, batch_size)
         train_loss = []
         valid_loss = []
@@ -149,7 +190,7 @@ class NN(torch.nn.Module):
             self.train()
             for xb_train, yb_train in train_dl:
                 y_pred = self.forward(xb_train)
-                if self.apply_slope_recovery:
+                if apply_slope_recovery:
                     local_recovery = torch.tensor(
                         [torch.mean(self.regressor[layer][0].A.data)
                          for layer in range(len(self.regressor) - 1)]
@@ -172,8 +213,5 @@ class NN(torch.nn.Module):
                 ).detach().numpy() / len(valid_dl))
         return train_loss, valid_loss
 
-    def forward(self, x):
-        return self.regressor(x)
-
-    def predict(self, x):
-        return self.forward(x)
+    def forward(self, X):
+        return self.module(X)

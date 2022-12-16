@@ -10,5 +10,5 @@ class Swish(torch.nn.Module):
           dimensions
         - Output: :math:`(N, *)`, same shape as the input
     """
-    def forward(self, input):
-        return torch.sigmoid(input) * input
+    def forward(self, X):
+        return torch.sigmoid(X) * X
