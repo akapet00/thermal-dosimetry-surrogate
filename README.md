@@ -3,8 +3,8 @@
 The repository contains the code for the paper *Standardized Benchmark Dataset for Localized Exposure to a Realistic Source at 10-90 GHz*.
 
 This repository is related to the following conference papers:
-* *Standardized Benchmark Dataset for Localized Exposure to a Realistic Source at 10-90 GHz*, in proceedings of [BioEM 2023](https://www.bioem2023.org/)
-* *Prediction of Maximum Temperature Rise on Skin Surface for Local Exposure at 10-90 GHz*, in proceedings of [URSI GASS 2023](https://www.ursi-gass2023.jp/)
+* [*Standardized Benchmark Dataset for Localized Exposure to a Realistic Source at 10-90 GHz*](https://arxiv.org/abs/2305.02260), in proceedings of [BioEM 2023](https://www.bioem2023.org/)
+* [*Prediction of Maximum Temperature Rise on Skin Surface for Local Exposure at 10-90 GHz*](https://ieeexplore.ieee.org/document/10265331), in proceedings of [URSI GASS 2023](https://www.ursi-gass2023.jp/)
 
 To reproduce the results, easiest way is to create a local environment by using `conda` as
 ```shell
@@ -38,14 +38,26 @@ to install all dependencies listed in `requirements.txt`.
 
 ## Cite
 ```bibtex
-@misc{kapetanovic2023standardized,
-      title={Standardized Benchmark Dataset for Localized Exposure to a Realistic Source at 10$-$90 GHz}, 
-      author={Ante Kapetanovic and Dragan Poljak and Kun Li},
+@misc{Kapetanovic2023Standardized,
+      title={Standardized Benchmark Dataset for Localized Exposure to a Realistic Source at 10$-$90 {GHz}}, 
+      author={Kapetanović, Ante and Poljak, Dragan and Li, Kun},
       year={2023},
       eprint={2305.02260},
       archivePrefix={arXiv},
-      primaryClass={physics.med-ph}
+      primaryClass={physics.med-ph},
+      doi={10.48550/arXiv.2305.02260}
 }
+```
+
+or
+
+```bibtex
+@inproceedings{Kapetanovic2023Prediction,
+      title={Prediction of Maximum Temperature Rise on Skin Surface for Local Exposure at 10$-$90 {GHz}},
+      author={Kapetanović, Ante and Poljak, Dragan and Li, Kun},
+      year={2023},
+      booktitle={2023 XXXVth General Assembly and Scientific Symposium of the International Union of Radio Science (URSI GASS)},
+      doi={10.23919/URSIGASS57860.2023.10265331}}
 ```
 
 ## License
